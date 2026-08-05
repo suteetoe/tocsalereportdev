@@ -1,6 +1,6 @@
 # TOC Sale Report
 
-TOC Sale Report is a sales-reporting project organized as an orchestration repository with separate areas for the backend API, frontend application, QA automation, and shared documentation.
+TOC Sale Report is a sales-reporting project organized as an orchestration repository with separate areas for the backend API, frontend application, QA automation, and shared documentation. The backend and frontend are mounted as Git submodules; QA and shared documentation live in this root repository.
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ TOC Sale Report is a sales-reporting project organized as an orchestration repos
 flowchart TB
   root["tocsalereport/"]
   agents[".agents/agents/\nAgent role definitions"]
-  api["api/\nGo backend API\nHexagonal Architecture"]
+  backend["backend/\nGo backend API\nHexagonal Architecture\nGit submodule"]
   frontend["frontend/\nVue 3 + TypeScript SPA\nshadcn-vue UI"]
   qa["qa/\nPlaywright e2e tests"]
   docs["docs/\nShared project documentation"]
@@ -16,24 +16,24 @@ flowchart TB
 
   root --> guide
   root --> agents
-  root --> api
+  root --> backend
   root --> frontend
   root --> qa
   root --> docs
 
-  api --> apiDocs["docs/api/, docs/backend/\nAPI and backend notes"]
-  frontend --> frontendDocs["docs/frontend/\nFrontend notes"]
-  qa --> qaDocs["docs/qa/\nQA and test notes"]
+  backend --> backendReadme["backend/README.md\nBackend-local notes"]
+  frontend --> frontendReadme["frontend/README.md\nFrontend-local notes"]
+  qa --> qaReadme["qa/README.md\nQA-local notes"]
 ```
 
 ## Repository Layout
 
 | Path | Purpose | Current status |
 | --- | --- | --- |
-| `api/` | Backend API owned by the backend agent. Target stack: Go with Hexagonal Architecture. | Scaffold pending |
-| `frontend/` | Frontend SPA owned by the frontend agent. Target stack: Vue 3, TypeScript, Pinia, vue-router, shadcn-vue. | Scaffold pending |
-| `qa/` | End-to-end test project owned by the QA agent. Target stack: Playwright and TypeScript. | Scaffold pending |
-| `docs/` | Shared project documentation for API, backend, frontend, and QA notes. | Scaffold pending |
+| `backend/` | Backend API owned by the backend agent. Go API using Hexagonal Architecture. Mounted from `tocsalereport-api`. | Submodule present |
+| `frontend/` | Frontend SPA owned by the frontend agent. Target stack: Vue 3, TypeScript, Pinia, vue-router, shadcn-vue. Mounted from `tocsalereport-web`. | Submodule present |
+| `qa/` | End-to-end test project owned by the QA agent. Target stack: Playwright and TypeScript. | Root project area present |
+| `docs/` | Shared project documentation that applies across backend, frontend, and QA. | Directory present |
 | `.agents/agents/` | Agent role definitions for backend, frontend, and QA work. | Present |
 | `AGENTS.md` | Root workflow, ownership, architecture, and coordination rules. | Present |
 
@@ -72,12 +72,17 @@ QA is an independent Playwright project that validates critical user flows throu
 
 ## Getting Started
 
-This repository currently contains the project coordination files and empty project areas. After the subprojects are scaffolded, run commands from the relevant project directory rather than from the repository root.
-
-Expected future command locations:
+Clone this repository with submodules, then run project-specific commands from the relevant project directory rather than from the repository root.
 
 ```sh
-cd api        # backend commands
+git clone --recurse-submodules <repo-url>
+git submodule update --init --recursive
+```
+
+Command locations:
+
+```sh
+cd backend    # backend commands
 cd frontend  # frontend commands
 cd qa        # Playwright e2e commands
 ```
@@ -85,8 +90,7 @@ cd qa        # Playwright e2e commands
 ## Development Rules
 
 - Read `AGENTS.md` before starting work in this repository.
-- Keep changes inside the owning area: backend in `api/`, frontend in `frontend/`, QA in `qa/`.
+- Keep changes inside the owning area: backend in `backend/`, frontend in `frontend/`, QA in `qa/`.
 - Update the related docs whenever API contracts, frontend structure, or test flows change.
 - Run the relevant local tests before handing work back to the PM agent.
 - Run QA e2e regression before considering a feature ready for rollout.
-
