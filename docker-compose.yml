@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tocsalereport}
+      POSTGRES_USER: ${POSTGRES_USER:-tocsalereport}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tocsalereport}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_DSN: ${DB_DSN:-postgres://tocsalereport:tocsalereport@db:5432/tocsalereport?sslmode=disable}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-15s}
+      DB_HEALTH_TIMEOUT: ${DB_HEALTH_TIMEOUT:-2s}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-change-me-in-production}
+      AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL:-24h}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
