@@ -7,6 +7,7 @@
 - Role: 2 ระดับ — `admin` / `user`
 - Token: JWT stateless (access token) + refresh token เก็บใน DB (revoke ได้)
 - ไม่รวม self-registration — สร้าง user ได้แค่ผ่าน CLI และ Admin API เท่านั้น
+- HTTP API base URL: ทุก endpoint ใน spec นี้เรียกผ่าน `{API_BASE_URL}/api/v1`
 
 ## 1. ขอบเขต (Scope)
 
@@ -15,7 +16,7 @@
 | ช่องทาง | ใคร | Interface |
 |---|---|---|
 | CLI | Dev/Ops ตอน deploy หรือ bootstrap (เช่น สร้าง super admin คนแรก) | `cmd/cli` (Go binary แยกจาก `cmd/api`) |
-| Admin | ผู้ดูแลระบบที่ login แล้ว | REST API ผ่าน `/api/v1/admin/users` (ต้องมี role admin) |
+| Admin | ผู้ดูแลระบบที่ login แล้ว | REST API ผ่าน `{API_BASE_URL}/api/v1/admin/users` (ต้องมี role admin) |
 
 นอกขอบเขตของ spec นี้: self-registration (สมัครเองผ่านหน้าเว็บ), OAuth/SSO, forgot-password ผ่านอีเมล — ตัดออกตามที่ตกลง อาจเพิ่มเป็น phase ถัดไป
 
@@ -59,29 +60,43 @@ go run ./cmd/cli user reset-password --username xxx
 
 ## 4. Flow 2 — สร้างโดย Admin (REST API)
 
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+
 | Method | Endpoint | Auth | คำอธิบาย |
 |---|---|---|---|
-| POST | `/api/v1/admin/users` | JWT + role=admin | สร้าง user ใหม่ |
-| GET | `/api/v1/admin/users` | JWT + role=admin | list + pagination/filter |
-| GET | `/api/v1/admin/users/:id` | JWT + role=admin | ดูรายละเอียด |
-| PATCH | `/api/v1/admin/users/:id` | JWT + role=admin | แก้ role/status |
-| POST | `/api/v1/admin/users/:id/reset-password` | JWT + role=admin | reset password ให้ user |
-| DELETE | `/api/v1/admin/users/:id` | JWT + role=admin | soft delete (status=disabled) — ไม่ hard delete |
+| POST | `/admin/users` | JWT + role=admin | สร้าง user ใหม่ |
+| GET | `/admin/users` | JWT + role=admin | list + pagination/filter |
+| GET | `/admin/users/:id` | JWT + role=admin | ดูรายละเอียด |
+| PATCH | `/admin/users/:id` | JWT + role=admin | แก้ role/status |
+| POST | `/admin/users/:id/reset-password` | JWT + role=admin | reset password ให้ user |
+| DELETE | `/admin/users/:id` | JWT + role=admin | soft delete (status=disabled) — ไม่ hard delete |
 
 Admin สร้าง user โดยระบบ generate temp password ให้ → ตั้ง `must_change_password = true`
 
 ## 5. Authentication (Login)
 
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+
 | Method | Endpoint | คำอธิบาย |
 |---|---|---|
-| POST | `/api/v1/auth/login` | username/email + password → access token (JWT, อายุ 15 นาที) + refresh token (อายุ 7 วัน) |
-| POST | `/api/v1/auth/refresh` | refresh token → access token ใหม่ (rotate refresh token ด้วย) |
-| POST | `/api/v1/auth/logout` | revoke refresh token ปัจจุบัน |
-| POST | `/api/v1/auth/change-password` | user เปลี่ยนรหัสตัวเอง (ต้องใส่รหัสเดิม) |
+| POST | `/auth/login` | username/email + password → access token (JWT, อายุ 15 นาที) + refresh token (อายุ 7 วัน) |
+| POST | `/auth/refresh` | refresh token → access token ใหม่ (rotate refresh token ด้วย) |
+| POST | `/auth/logout` | revoke refresh token ปัจจุบัน |
+| POST | `/auth/change-password` | user เปลี่ยนรหัสตัวเอง (ต้องใส่รหัสเดิม) |
 
 Revoke ทั้งหมด (เช่น admin สั่ง disable user) → set `revoked_at` ทุกแถวใน `bi_refresh_tokens` ของ user นั้น
 
-## 6. โครงสร้างโค้ด (Hexagonal, ตาม `docs/backend-architecture.md`)
+## 6. Profile
+
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+
+| Method | Endpoint | Auth | คำอธิบาย |
+|---|---|---|---|
+| GET | `/profile/me` | JWT bearer token | ดึงข้อมูล user ปัจจุบันจาก bearer token ที่ส่งมาใน `Authorization: Bearer <access_token>` |
+
+Response ของ `/profile/me` ต้องคืนข้อมูล user จาก token subject โดยไม่คืน `password_hash` หรือ token ดิบใน response
+
+## 7. โครงสร้างโค้ด (Hexagonal, ตาม `docs/backend-architecture.md`)
 
 ```
 internal/
@@ -100,6 +115,7 @@ internal/
     http/
       user_handler.go       # admin user endpoints
       auth_handler.go        # /auth/* endpoints
+      profile_handler.go     # /profile/me endpoint
       middleware/              # JWT auth middleware (role check)
     repositories/
       user_repository.go       # bi_users
@@ -113,15 +129,16 @@ cmd/
 
 CLI (`cmd/cli`) เป็น adapter อีกตัวที่เรียก `core/user` service ตัวเดียวกับที่ `adapters/http` เรียก — ไม่ duplicate business logic
 
-## 7. Security checklist
+## 8. Security checklist
 
 - bcrypt cost ≥ 12 สำหรับ password และ refresh token hash
 - Rate limit `/auth/login` กัน brute force
 - Audit: `created_by` ทุก record, log การ disable/reset-password
 - Middleware ตรวจ JWT + role ก่อนเข้า `/admin/*`
+- Middleware ตรวจ JWT ก่อนเข้า `/profile/me`
 - ไม่ log password/token ดิบ
 
-## 8. Testing (ตามมาตรฐาน `docs/backend-architecture.md`)
+## 9. Testing (ตามมาตรฐาน `docs/backend-architecture.md`)
 
 - Unit test 100% coverage: `core/user` และ `core/auth` service (mock ports, ไม่แตะ DB/network จริง)
 - Integration test: `adapters/repositories` ต่อ DB test schema จริง
