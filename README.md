@@ -80,6 +80,18 @@ The backend service runs at `http://localhost:<APP_PORT>` in local development. 
 
 For example, the versioned health endpoint is `GET /tocsalereportapi/api/v1/health`. Infrastructure health checks are also available at `GET /healthz`.
 
+## Frontend Web Base Path
+
+The frontend SPA is served under this base path:
+
+```text
+/tocsalereport/
+```
+
+Local Vite routes are available at `http://localhost:5173/tocsalereport/`. Production nginx redirects `/tocsalereport` to `/tocsalereport/` and serves SPA deep links such as `/tocsalereport/login` and `/tocsalereport/reports`.
+
+See [`docs/frontend-path-prefix.md`](docs/frontend-path-prefix.md) for the implementation notes and QA handoff.
+
 ## Getting Started
 
 Clone this repository with submodules, then run project-specific commands from the relevant project directory rather than from the repository root.
