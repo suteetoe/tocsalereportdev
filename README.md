@@ -70,6 +70,16 @@ The frontend separates presentation, domain, and data concerns. UI components re
 
 QA is an independent Playwright project that validates critical user flows through the real UI and checks backend/frontend contract behavior before rollout.
 
+## Backend API Base URL
+
+The backend service runs at `http://localhost:<APP_PORT>` in local development. All versioned API endpoints are served under this base path:
+
+```text
+/tocsalereportapi/api/v1
+```
+
+For example, the versioned health endpoint is `GET /tocsalereportapi/api/v1/health`. Infrastructure health checks are also available at `GET /healthz`.
+
 ## Getting Started
 
 Clone this repository with submodules, then run project-specific commands from the relevant project directory rather than from the repository root.

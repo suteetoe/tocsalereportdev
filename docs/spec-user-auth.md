@@ -7,7 +7,7 @@
 - Role: 2 ระดับ — `admin` / `user`
 - Token: JWT stateless (access token) + refresh token เก็บใน DB (revoke ได้)
 - ไม่รวม self-registration — สร้าง user ได้แค่ผ่าน CLI และ Admin API เท่านั้น
-- HTTP API base URL: ทุก endpoint ใน spec นี้เรียกผ่าน `{API_BASE_URL}/api/v1`
+- HTTP API base URL: ทุก endpoint ใน spec นี้เรียกผ่าน `{API_BASE_URL}/tocsalereportapi/api/v1`
 
 ## 1. ขอบเขต (Scope)
 
@@ -16,7 +16,7 @@
 | ช่องทาง | ใคร | Interface |
 |---|---|---|
 | CLI | Dev/Ops ตอน deploy หรือ bootstrap (เช่น สร้าง super admin คนแรก) | `cmd/cli` (Go binary แยกจาก `cmd/api`) |
-| Admin | ผู้ดูแลระบบที่ login แล้ว | REST API ผ่าน `{API_BASE_URL}/api/v1/admin/users` (ต้องมี role admin) |
+| Admin | ผู้ดูแลระบบที่ login แล้ว | REST API ผ่าน `{API_BASE_URL}/tocsalereportapi/api/v1/admin/users` (ต้องมี role admin) |
 
 นอกขอบเขตของ spec นี้: self-registration (สมัครเองผ่านหน้าเว็บ), OAuth/SSO, forgot-password ผ่านอีเมล — ตัดออกตามที่ตกลง อาจเพิ่มเป็น phase ถัดไป
 
@@ -60,7 +60,7 @@ go run ./cmd/cli user reset-password --username xxx
 
 ## 4. Flow 2 — สร้างโดย Admin (REST API)
 
-Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/tocsalereportapi/api/v1`
 
 | Method | Endpoint | Auth | คำอธิบาย |
 |---|---|---|---|
@@ -75,7 +75,7 @@ Admin สร้าง user โดยระบบ generate temp password ให�
 
 ## 5. Authentication (Login)
 
-Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/tocsalereportapi/api/v1`
 
 | Method | Endpoint | คำอธิบาย |
 |---|---|---|
@@ -88,7 +88,7 @@ Revoke ทั้งหมด (เช่น admin สั่ง disable user) → 
 
 ## 6. Profile
 
-Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/api/v1`
+Endpoint ในตารางนี้เป็น path ใต้ `{API_BASE_URL}/tocsalereportapi/api/v1`
 
 | Method | Endpoint | Auth | คำอธิบาย |
 |---|---|---|---|
