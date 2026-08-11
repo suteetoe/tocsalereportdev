@@ -74,11 +74,11 @@ Common commands (run from `backend/`):
 
 ```sh
 go run ./cmd/api          # run the API locally (reads .env)
-go build -o smlmemberpoint-service ./cmd/service   # build the OS-service binary
+go run ./cmd/init-user --email admin@example.com --name "Admin User" --password "change-me"  # create the initial admin user
 go test ./...              # run all tests
 go test ./... -cover       # run tests with coverage
-go test ./internal/core/auth/... -run TestName   # run a single test
-swag init -g cmd/api/main.go -o docs   # regenerate Swagger docs after handler changes
+go test ./internal/auth/... -run TestName   # run a single auth test
+go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g cmd/api/main.go -o docs   # regenerate Swagger docs after handler changes
 ```
 
 Requires a running PostgreSQL instance and a `.env` file (see backend/README.md for the variable list). Subagents use a shared local dev DB with a dedicated `_test` schema/database for automated tests, so unit/integration runs never touch dev data. Swagger UI is served at `/swagger/index.html` once the API is running.
@@ -94,7 +94,18 @@ Vue.js SPA following a strict 3-Layer Architecture (Presentation / Domain / Data
 - `src/presentation/` (components, views, composables) handles rendering and user events only — composables act as the adapter that instantiates use-cases/repositories and exposes reactive state; components never call Axios or business logic directly.
 - Base shadcn-vue components live under `src/presentation/components/ui/`; feature components compose them.
 
-The project itself has **not been scaffolded yet** — `frontend/` currently contains only `AGENTS.md`. When bootstrapping it, follow standard Vue tooling conventions (e.g. `npm create vue@latest`) and build out the directory structure exactly as specified in frontend/AGENTS.md. Once tooling exists, add the actual commands (dev server, build, test, lint) to this section — do not leave this section stale after scaffolding lands.
+Common commands (run from `frontend/`):
+
+```sh
+pnpm install
+pnpm dev
+pnpm lint
+pnpm type-check
+pnpm test:unit
+pnpm build
+```
+
+The frontend is scaffolded as a Vue 3 + TypeScript + Vite app. Auth is wired through the data layer to backend endpoints under `/tocsalereportapi/api/v1`; `VITE_API_BASE_URL` may point either at the backend root URL or the full versioned API base URL.
 
 ---
 
