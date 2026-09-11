@@ -1,0 +1,21 @@
+{
+  "name": "toc-sale-report-qa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E2E testing suite for TOC Sale Report using Playwright and TypeScript",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:critical": "playwright test --grep @critical",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.13.9",
+    "typescript": "^5.8.2"
+  }
+}
