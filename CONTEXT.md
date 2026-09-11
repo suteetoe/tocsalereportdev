@@ -6,7 +6,7 @@ This context is responsible for aggregating, calculating, and presenting sales p
 
 **Company**:
 An operating enterprise entity within the organization (`TOC`, `PTOC`, `TOL`, `TOP`) that generates sales and product records.
-_Avoid_: Group, Manufacturer, Business Unit
+_Avoid_: Group, Manufacturer, Business Unit, Brand
 
 **Sale Push (Channel)**:
 A strategic categorization of products tagged for targeted sales promotion and growth acceleration in specific years.
@@ -43,3 +43,15 @@ _Avoid_: Base Year, Selected Year, Filter Year
 **Reporting Window**:
 The sliding sequence of up to three consecutive calendar years terminating at the Target Year ($[Y-2, Y-1, Y]$) used for quarterly and YoY comparative evaluation.
 _Avoid_: Date Range, Year Span, Timeframe
+
+**Sales Import Job (Run)**:
+A scheduled or on-demand execution that ingests raw transactional sales records from an external PostgreSQL database, performs quarterly aggregation and push attribution, and upserts the result into reporting metrics.
+_Avoid_: Sync Daemon, Data Puller, Cron Script
+
+**Import Audit Log (`sales_import_logs`)**:
+An immutable operational log record tracking each import attempt, capturing status (`SUCCESS`, `FAILED`), trigger type (`CRON`, `MANUAL`), target year, execution duration, row counts, and error details.
+_Avoid_: History Table, Job Log, Sync Log
+
+**Advisory Lock**:
+A PostgreSQL application-level lock (`pg_try_advisory_lock`) utilized by the in-process cron worker to guarantee mutual exclusion across horizontally scaled application instances.
+_Avoid_: Distributed Lock, Redis Lock, Semaphore
