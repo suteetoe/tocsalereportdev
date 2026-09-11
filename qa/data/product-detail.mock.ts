@@ -288,3 +288,46 @@ export const mockCompanyDetails: Record<string, MockProductDetailReport> = {
     },
   },
 }
+
+export function getMockCompanyDetail(
+  company: string,
+  targetYear = 2025,
+): MockProductDetailReport | null {
+  const base = mockCompanyDetails[company]
+  if (!base) return null
+  if (targetYear === 2025) return base
+
+  const years = [targetYear - 2, targetYear - 1, targetYear]
+
+  function patchRow(row: MockProductRow): MockProductRow {
+    const qty: Record<number, number> = { ...row.qty }
+    const value: Record<number, number> = { ...row.value }
+    for (const yr of years) {
+      if (qty[yr] === undefined) {
+        qty[yr] = Math.round((qty[2023] ?? 10000) * 0.9)
+      }
+      if (value[yr] === undefined) {
+        value[yr] = Math.round((value[2023] ?? 1000000) * 0.9)
+      }
+    }
+    return { ...row, qty, value }
+  }
+
+  function patchGroup(grp: MockProductGroup): MockProductGroup {
+    return {
+      ...grp,
+      items: grp.items.map(patchRow),
+      total: patchRow(grp.total as unknown as MockProductRow) as unknown as MockProductGroup['total'],
+    }
+  }
+
+  return {
+    ...base,
+    years,
+    groups: {
+      push: patchGroup(base.groups.push),
+      nonpush: patchGroup(base.groups.nonpush),
+    },
+  }
+}
+

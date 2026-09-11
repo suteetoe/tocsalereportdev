@@ -1,10 +1,7 @@
 interface QuarterRecord {
   quarter: string
   values: Record<number, number>
-  growth: {
-    from2023To2024: number
-    from2024To2025: number
-  }
+  growth: Record<string, number>
 }
 
 interface SeriesRecord {
@@ -14,17 +11,33 @@ interface SeriesRecord {
   quarters: QuarterRecord[]
 }
 
-function createQuarter(quarter: string, v2023: number, v2024: number, v2025: number): QuarterRecord {
+export const mockSalePushYearsResponse = {
+  success: true,
+  data: {
+    availableYears: [2022, 2023, 2024, 2025],
+    defaultYear: 2025,
+  },
+}
+
+function createQuarter(
+  quarter: string,
+  v2023: number,
+  v2024: number,
+  v2025: number,
+  v2022 = v2023 * 0.9,
+): QuarterRecord {
   return {
     quarter,
     values: {
+      2022: v2022,
       2023: v2023,
       2024: v2024,
       2025: v2025,
     },
     growth: {
-      from2023To2024: v2023 > 0 ? (v2024 - v2023) / v2023 : 0,
-      from2024To2025: v2024 > 0 ? (v2025 - v2024) / v2024 : 0,
+      '2023': v2022 > 0 ? (v2023 - v2022) / v2022 : 0,
+      '2024': v2023 > 0 ? (v2024 - v2023) / v2023 : 0,
+      '2025': v2024 > 0 ? (v2025 - v2024) / v2024 : 0,
     },
   }
 }
@@ -67,6 +80,8 @@ function createPanel(group: string, multiplier: number) {
 export const mockSalePushSummaryResponse = {
   success: true,
   data: {
+    years: [2023, 2024, 2025],
+    defaultYear: 2025,
     panels: {
       all: createPanel('all', 4.0),
       toc: createPanel('toc', 1.0),
@@ -76,3 +91,22 @@ export const mockSalePushSummaryResponse = {
     },
   },
 }
+
+export function getMockSalePushSummaryResponse(targetYear = 2025) {
+  const years =
+    targetYear === 2024
+      ? [2022, 2023, 2024]
+      : targetYear === 2023
+        ? [2022, 2023]
+        : [2023, 2024, 2025]
+
+  return {
+    success: true,
+    data: {
+      years,
+      defaultYear: 2025,
+      panels: mockSalePushSummaryResponse.data.panels,
+    },
+  }
+}
+

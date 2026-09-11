@@ -124,7 +124,44 @@ test.describe('Sale Push Product Detail Flow', () => {
     await authedDetailPage.goto('toc')
 
     await authedDetailPage.clickBackToSummary()
-    await expect(authedPage).toHaveURL(/\/tocsalereport\/sale-push$/)
-    await expect(authedPage.locator('h2')).toContainText('PUSH vs NON PUSH 2023-2025')
+    await expect(authedPage).toHaveURL(/\/tocsalereport\/sale-push(\?.*)?$/)
+    await expect(authedPage.locator('h2')).toContainText('PUSH vs NON PUSH')
+  })
+
+  test('สามารถเปลี่ยน Target Year ในหน้ารายละเอียดสินค้า และ URL อัปเดตพารามิเตอร์ ?year=... (@regression, @critical)', async ({
+    authedDetailPage,
+    authedPage,
+  }) => {
+    await authedDetailPage.goto('toc')
+
+    // Verify initial year is 2025
+    await expect(authedDetailPage.yearSelect).toHaveValue('2025')
+
+    // Change year to 2024
+    await authedDetailPage.selectYear(2024)
+    await expect(authedPage).toHaveURL(/year=2024/)
+    await expect(authedDetailPage.yearSelect).toHaveValue('2024')
+
+    // Verify 3 year cards are still visible for the new window
+    await expect(authedDetailPage.totalCards).toHaveCount(3)
+
+    // Table rows still display data
+    const rowCount = await authedDetailPage.getRowCount()
+    expect(rowCount).toBeGreaterThan(0)
+  })
+
+  test('เปิดหน้ารายละเอียดสินค้าพร้อม query param ?year=2024 โดยตรง และสามารถคลิกย้อนกลับไปยัง Summary พร้อมพารามิเตอร์ปี (@regression)', async ({
+    authedDetailPage,
+    authedPage,
+  }) => {
+    await authedDetailPage.goto('toc', 2024)
+
+    await expect(authedDetailPage.yearSelect).toHaveValue('2024')
+    await expect(authedDetailPage.totalCards).toHaveCount(3)
+
+    // Click back to summary, should preserve year=2024
+    await authedDetailPage.clickBackToSummary()
+    await expect(authedPage).toHaveURL(/\/tocsalereport\/sale-push\?year=2024/)
+    await expect(authedPage.locator('h2')).toContainText('PUSH vs NON PUSH 2022-2024')
   })
 })

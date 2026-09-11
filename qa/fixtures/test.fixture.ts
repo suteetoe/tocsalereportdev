@@ -7,8 +7,12 @@ import {
   mockLogoutSuccessResponse,
   mockProfileResponse,
 } from '../data/auth.mock'
-import { mockCompanyDetails } from '../data/product-detail.mock'
-import { mockSalePushSummaryResponse } from '../data/sales-summary.mock'
+import { getMockCompanyDetail, mockCompanyDetails } from '../data/product-detail.mock'
+import {
+  getMockSalePushSummaryResponse,
+  mockSalePushSummaryResponse,
+  mockSalePushYearsResponse,
+} from '../data/sales-summary.mock'
 import { LoginPage, SalePushProductDetailPage, SalePushSummaryPage } from '../pages'
 
 export async function setupApiMocks(page: Page) {
@@ -53,12 +57,26 @@ export async function setupApiMocks(page: Page) {
     })
   })
 
-  // Mock sales push summary endpoint
-  await page.route('**/api/v1/sales/push/summary', async (route) => {
+  // Mock available years endpoint
+  await page.route('**/api/v1/sales/push/years', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(mockSalePushSummaryResponse),
+      body: JSON.stringify(mockSalePushYearsResponse),
+    })
+  })
+
+  // Mock sales push summary endpoint
+  await page.route('**/api/v1/sales/push/summary*', async (route) => {
+    const url = new URL(route.request().url())
+    const yearParam = url.searchParams.get('year')
+    const year = yearParam ? Number(yearParam) : 2025
+    const response = getMockSalePushSummaryResponse(year)
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(response),
     })
   })
 
@@ -69,12 +87,17 @@ export async function setupApiMocks(page: Page) {
     const company = match ? match[1].toLowerCase() : ''
 
     if (company in mockCompanyDetails) {
+      const urlObj = new URL(url)
+      const yearParam = urlObj.searchParams.get('year')
+      const targetYear = yearParam ? Number(yearParam) : 2025
+      const detail = getMockCompanyDetail(company, targetYear)
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: mockCompanyDetails[company],
+          data: detail,
         }),
       })
       return

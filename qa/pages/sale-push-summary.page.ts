@@ -19,13 +19,15 @@ export class SalePushSummaryPage {
   readonly page: Page
   readonly container: Locator
   readonly pageTitle: Locator
+  readonly yearSelect: Locator
   readonly metricControls: Locator
   readonly channelControls: Locator
 
   constructor(page: Page) {
     this.page = page
     this.container = page.locator('[data-testid="sale-push-page"]')
-    this.pageTitle = page.locator('h2', { hasText: 'PUSH vs NON PUSH 2023-2025' })
+    this.pageTitle = page.locator('h2', { hasText: 'PUSH vs NON PUSH' })
+    this.yearSelect = page.locator('[data-testid="sale-push-year-select"]')
     this.metricControls = page.locator('[aria-label="Metric controls"]')
     this.channelControls = page.locator('[aria-label="Channel controls"]')
   }
@@ -38,8 +40,13 @@ export class SalePushSummaryPage {
   async expectLoaded() {
     await expect(this.container).toBeVisible()
     await expect(this.pageTitle).toBeVisible()
+    await expect(this.yearSelect).toBeVisible()
     await expect(this.metricControls).toBeVisible()
     await expect(this.channelControls).toBeVisible()
+  }
+
+  async selectYear(year: number) {
+    await this.yearSelect.selectOption(String(year))
   }
 
   getPanel(group: SalePushGroup): Locator {

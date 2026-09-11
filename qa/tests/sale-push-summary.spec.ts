@@ -62,4 +62,38 @@ test.describe('Sale Push Summary Dashboard', () => {
     await expect(authedPage).toHaveURL(/\/tocsalereport\/sale-push\/toc\/details/)
     await expect(authedPage.locator('h2')).toContainText('TOC PUSH / NON PUSH')
   })
+
+  test('สามารถเลือก Target Year จาก dropdown และ URL อัปเดตพารามิเตอร์ ?year=... (@regression, @critical)', async ({
+    authedSummaryPage,
+    authedPage,
+  }) => {
+    await authedSummaryPage.goto()
+
+    // Default target year is 2025
+    await expect(authedSummaryPage.yearSelect).toHaveValue('2025')
+    await expect(authedSummaryPage.pageTitle).toContainText('PUSH vs NON PUSH 2023-2025')
+
+    // Select 2024
+    await authedSummaryPage.selectYear(2024)
+    await expect(authedPage).toHaveURL(/year=2024/)
+    await expect(authedSummaryPage.yearSelect).toHaveValue('2024')
+    await expect(authedSummaryPage.pageTitle).toContainText('PUSH vs NON PUSH 2022-2024')
+  })
+
+  test('คลิกลิงก์ Details ของบริษัทส่งต่อ query param ?year=... ไปยังหน้ารายละเอียดสินค้า (@smoke, @critical)', async ({
+    authedSummaryPage,
+    authedPage,
+  }) => {
+    await authedSummaryPage.goto()
+
+    // Select 2024
+    await authedSummaryPage.selectYear(2024)
+    await expect(authedPage).toHaveURL(/year=2024/)
+
+    // Click Details on TOC
+    await authedSummaryPage.clickDetailLink('toc')
+    await expect(authedPage).toHaveURL(/\/tocsalereport\/sale-push\/toc\/details\?year=2024/)
+    await expect(authedPage.locator('h2')).toContainText('TOC PUSH / NON PUSH')
+  })
 })
+

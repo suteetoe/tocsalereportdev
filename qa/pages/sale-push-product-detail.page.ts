@@ -3,7 +3,7 @@ import { expect, type Locator, type Page } from '@playwright/test'
 export type Manufacturer = 'toc' | 'ptoc' | 'tol' | 'top'
 export type ProductChannel = 'push' | 'nonpush'
 export type ProductMetric = 'value' | 'qty'
-export type SortColumn = 'no' | 'code' | 'name' | 'product' | '2023' | '2024' | '2025'
+export type SortColumn = 'no' | 'code' | 'name' | 'product' | string | number
 
 const channelLabels: Record<ProductChannel, string> = {
   push: 'PUSH',
@@ -15,14 +15,11 @@ const metricLabels: Record<ProductMetric, string> = {
   qty: 'จำนวน',
 }
 
-const sortColumnKeywords: Record<SortColumn, string> = {
+const sortColumnKeywords: Record<string, string> = {
   no: 'No.',
   code: 'Code',
   name: 'Product',
   product: 'Product',
-  '2023': '2023',
-  '2024': '2024',
-  '2025': '2025',
 }
 
 export class SalePushProductDetailPage {
@@ -30,6 +27,7 @@ export class SalePushProductDetailPage {
   readonly container: Locator
   readonly pageHeading: Locator
   readonly backLink: Locator
+  readonly yearSelect: Locator
   readonly channelControls: Locator
   readonly metricControls: Locator
   readonly totalCards: Locator
@@ -42,6 +40,7 @@ export class SalePushProductDetailPage {
     this.container = page.locator('[data-testid="sale-push-product-detail-page"]')
     this.pageHeading = this.container.locator('h2')
     this.backLink = this.container.locator('a', { hasText: 'Sale Push' })
+    this.yearSelect = this.container.locator('[data-testid="sale-push-detail-year-select"]')
     this.channelControls = this.container.locator('[aria-label="Channel controls"]')
     this.metricControls = this.container.locator('[aria-label="Metric controls"]')
     this.totalCards = this.container.locator('article.rounded-md')
@@ -50,16 +49,24 @@ export class SalePushProductDetailPage {
     this.totalRow = this.container.locator('table tfoot tr')
   }
 
-  async goto(manufacturer: Manufacturer) {
-    await this.page.goto(`/tocsalereport/sale-push/${manufacturer}/details`)
+  async goto(manufacturer: Manufacturer, year?: number) {
+    const url = year
+      ? `/tocsalereport/sale-push/${manufacturer}/details?year=${year}`
+      : `/tocsalereport/sale-push/${manufacturer}/details`
+    await this.page.goto(url)
     await this.expectLoaded()
   }
 
   async expectLoaded() {
     await expect(this.container).toBeVisible()
     await expect(this.pageHeading).toBeVisible()
+    await expect(this.yearSelect).toBeVisible()
     await expect(this.channelControls).toBeVisible()
     await expect(this.metricControls).toBeVisible()
+  }
+
+  async selectYear(year: number) {
+    await this.yearSelect.selectOption(String(year))
   }
 
   async selectChannel(channel: ProductChannel) {
@@ -77,9 +84,16 @@ export class SalePushProductDetailPage {
   }
 
   async sortBy(column: SortColumn) {
-    const keyword = sortColumnKeywords[column]
+    const colStr = String(column)
+    const keyword = sortColumnKeywords[colStr] ?? colStr
     const headerButton = this.table.locator('thead th button', { hasText: keyword })
     await headerButton.click()
+  }
+
+  async getYearHeaders(): Promise<string[]> {
+    const buttons = this.table.locator('thead th button')
+    const texts = await buttons.allInnerTexts()
+    return texts.filter((t) => /^\d{4}$/.test(t.trim()))
   }
 
   async getRowCount(): Promise<number> {

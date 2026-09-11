@@ -35,3 +35,11 @@ _Avoid_: Static Channel Mapping
 **All Companies**:
 The consolidated total across all active operating companies (`All = TOC + PTOC + TOL + TOP`).
 _Avoid_: Global, Overall Group
+
+**Target Year**:
+The reference calendar year selected by the user to anchor the sales analysis.
+_Avoid_: Base Year, Selected Year, Filter Year
+
+**Reporting Window**:
+The sliding sequence of up to three consecutive calendar years terminating at the Target Year ($[Y-2, Y-1, Y]$) used for quarterly and YoY comparative evaluation.
+_Avoid_: Date Range, Year Span, Timeframe
