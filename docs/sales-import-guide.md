@@ -17,6 +17,8 @@ flowchart LR
 ```
 
 - **Dual-Year Sync:** เมื่อสั่ง Import ปีเป้าหมาย $Y$ ระบบจะทำการดึงและประมวลผลข้อมูลทั้งปี **$Y-1$** และปี **$Y$** ให้อัตโนมัติ เพื่อให้มีข้อมูลปีก่อนหน้าพร้อมสำหรับการเปรียบเทียบ YoY Month และ YTD เสมอ
+- **Transactional Replace:** ใช้การลบและบันทึกข้อมูลระดับ Record ของทั้ง 2 ปีใหม่ทั้งหมดใน Database Transaction เดียวกัน (All-or-Nothing) ป้องกันปัญหาข้อมูลค้าง (Stale/Orphaned Data) เมื่อ ERP มีการยกเลิกหรือลบรายการ
+- **Circuit Breaker (Data Drop Guard):** ป้องกันข้อมูลสูญหายจากข้อผิดพลาดของ ERP ต้นทาง โดยจะยกเลิกการทำงานอัตโนมัติหากพบ 0 แถวในปี $Y$ หรือแถวลดลง > 50% ในปี $Y-1$ (สามารถระบุ `force=true` เพื่อ Bypass ได้)
 - **Inner Join Policy:** ระบบจะนำรายการขายไปจับคู่กับตาราง `push_products` บนระบบรายงาน รายการสินค้าที่มีการลงทะเบียนเท่านั้นที่จะถูกนำเข้าและกำหนดรหัสบริษัท (`company_code`) อย่างถูกต้อง
 - **Concurrency Control:** มีการใช้ PostgreSQL Advisory Lock ป้องกันการรัน Import ซ้อนกันในเวลาเดียวกัน
 
@@ -150,6 +152,7 @@ LIMIT 20;
 
 | Error Code | HTTP Status | สาเหตุและการแก้ไข |
 |---|:---:|---|
+| `circuit_breaker_triggered` | 422 Unprocessable Entity | ตรวจพบจำนวนแถวจาก ERP เป็น 0 หรือลดลงผิดปกติ (> 50% ในปี $Y-1$) ป้องกันข้อมูลสูญหาย หากต้องการยืนยันให้ส่ง `?force=true` หรือ `{ "force": true }` |
 | `sync_already_running` | 409 Conflict | มี Job นำเข้าข้อมูลกำลังทำงานอยู่ (ติด Advisory Lock) ให้รอจนกว่า Job ปัจจุบันจะเสร็จสิ้น |
 | `import_service_unavailable` | 503 Service Unavailable | ไม่ได้ตั้งค่า `EXTERNAL_SALES_DB_DSN` ใน `.env` หรือระบบไม่สามารถเชื่อมต่อไปยังฐานข้อมูล ERP ได้ |
 | `invalid_year` | 400 Bad Request | ระบุปีไม่ถูกต้อง (ระบบรองรับปี ค.ศ. ระหว่าง 2000 ถึง 2100) |

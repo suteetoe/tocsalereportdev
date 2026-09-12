@@ -75,3 +75,15 @@ _Avoid_: Expense, COGS Tag
 **Monthly Granularity**:
 The foundational temporal resolution ($[Year, Month]$) for transactional sales records, enabling monthly comparative reporting, YTD aggregations, and seamless quarterly rollups.
 _Avoid_: Daily Sales, Period Buckets
+
+**Transactional Replace**:
+The sales ingestion mechanism where all existing sales records for the synchronized years ($Y$ and $Y-1$) across monthly, quarterly, and company metric tables are purged and repopulated atomically within a single database transaction, preventing orphaned or stale records.
+_Avoid_: Incremental Upsert, In-Place Update, Soft Overwrite
+
+**Circuit Breaker (Data Drop Guard)**:
+An ingestion safety guard that aborts synchronization if fetched ERP records drop suspiciously ($0$ rows for year $Y$, or $> 50\%$ drop against baseline for year $Y-1$), preventing accidental truncation from upstream failures.
+_Avoid_: Row Validator, Data Sanitizer, Error Filter
+
+**Force Sync (`force=true`)**:
+An explicit administrative override parameter to bypass Circuit Breaker validations and proceed with Transactional Replace despite drastic row reductions.
+_Avoid_: Skip Check, Ignore Error, Hard Sync
