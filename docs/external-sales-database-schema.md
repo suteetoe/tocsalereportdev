@@ -98,3 +98,5 @@ GROUP BY
     EXTRACT(MONTH FROM ic_trans_detail.doc_date),
     EXTRACT(QUARTER FROM ic_trans_detail.doc_date);
 ```
+
+*(ดูไฟล์ SQL Script ฉบับเต็มได้ที่ [docs/sql/create_erp_sales_transactions_view.sql](sql/create_erp_sales_transactions_view.sql))*
