@@ -92,6 +92,12 @@ Local Vite routes are available at `http://localhost:5173/tocsalereport/`. Produ
 
 See [`docs/frontend-path-prefix.md`](docs/frontend-path-prefix.md) for the implementation notes and QA handoff.
 
+## Documentation & Specifications
+
+- [`CONTEXT.md`](CONTEXT.md): Project domain model, canonical vocabulary, and business rules.
+- [`docs/external-sales-database-schema.md`](docs/external-sales-database-schema.md): Data dictionary and schema specifications for upstream `push_products` and `sales_transactions` tables.
+- [`docs/adr/0001-in-process-cron-sales-import.md`](docs/adr/0001-in-process-cron-sales-import.md): Architecture Decision Record for In-Process Goroutine Cron and Advisory Lock.
+
 ## Getting Started
 
 Clone this repository with submodules, then run project-specific commands from the relevant project directory rather than from the repository root.
