@@ -55,3 +55,23 @@ _Avoid_: History Table, Job Log, Sync Log
 **Advisory Lock**:
 A PostgreSQL application-level lock (`pg_try_advisory_lock`) utilized by the in-process cron worker to guarantee mutual exclusion across horizontally scaled application instances.
 _Avoid_: Distributed Lock, Redis Lock, Semaphore
+
+**Target Month**:
+The specific calendar month ($1 \le M \le 12$) selected by the user within the Target Year for month-level and cumulative YTD evaluation.
+_Avoid_: Selected Month, As-Of Month
+
+**Year-To-Date (YTD)**:
+The cumulative sales performance aggregated from Month 1 (January) through the Target Month ($M$) within a given calendar year.
+_Avoid_: Year Aggregate, Running Total
+
+**Same Month Last Year (YoY Month)**:
+The comparative evaluation between the Target Month ($M$) in Target Year ($Y$) and the identical calendar month ($M$) in the immediately preceding year ($Y-1$).
+_Avoid_: Prior Month, SMLY, Last Year Month
+
+**Sale Cost (`cost`)**:
+The recorded cost of goods sold (COGS) aggregated alongside sales quantity and revenue amount, used for Gross Profit (`value - cost`) and Gross Margin analysis.
+_Avoid_: Expense, COGS Tag
+
+**Monthly Granularity**:
+The foundational temporal resolution ($[Year, Month]$) for transactional sales records, enabling monthly comparative reporting, YTD aggregations, and seamless quarterly rollups.
+_Avoid_: Daily Sales, Period Buckets

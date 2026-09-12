@@ -34,98 +34,67 @@
 
 ---
 
-## 3. ตาราง `sales_transactions` (ตารางรายการยอดขาย)
+## 3. ตาราง/View `sales_transactions` (ยอดขายจากระบบ ERP ต้นทาง)
 
 ### 3.1 วัตถุประสงค์
-ใช้เก็บรายการยอดขายรายไตรมาสหรือรายการสรุปยอดขายจากระบบต้นทาง เพื่อนำมาคำนวณ Attribution และรวมยอดขาย (Aggregation) เข้าสู่ตารางสรุปของระบบ
+จัดทำเป็น Database View บนฐานข้อมูล ERP (ดึงจากตาราง `ic_trans_detail` และ `ic_inventory`) สรุปยอดขายระดับรายเดือน (`[product_code, year, month]`) เพื่อนำเข้าสู่ระบบ โดยระบบจะทำการ **Inner Join** กับตาราง `push_products` บนระบบรายงาน เพื่อระบุบริษัท (`company_code`) และปีผลักดัน (`push_years`)
 
 ### 3.2 โครงสร้างฟิลด์ (Field Specifications)
 
 | ชื่อฟิลด์ (Field Name) | ชนิดข้อมูล (Data Type) | Nullable | คีย์ / ดัชนี (Key / Index) | คำอธิบายและข้อกำหนด | ตัวอย่างข้อมูล |
 |---|---|:---:|:---:|---|---|
-| **`id`** | `VARCHAR(100)` | YES | Index / Unique | รหัสอ้างอิงธุรกรรมหรือเลขที่บิลจากระบบต้นทาง (สำหรับใช้สอบทาน/Deduplication) | `'TX-2025-001'` |
-| **`company_code`** | `VARCHAR(10)` | NO | Index | รหัสบริษัทที่เกิดรายการขาย (`TOC`, `PTOC`, `TOL`, `TOP`) | `'TOC'` |
-| **`product_code`** | `VARCHAR(100)` | NO | Index | รหัสสินค้าตามระบบ ERP ต้นทาง | `'PROD-001'` |
-| **`product_name`** | `VARCHAR(255)` | NO | - | ชื่อของสินค้า (ภาษาไทยหรืออังกฤษ) | `'ยาลดไข้พาราเซตามอล 500 มก.'` |
-| **`unit`** | `VARCHAR(50)` | YES | - | หน่วยนับสินค้า เช่น ขวด, กล่อง, แผง, เม็ด (สามารถเป็นค่าว่าง/NULL ได้) | `'ขวด'` |
-| **`year`** | `INTEGER` | NO | Index | ปีปฏิทินที่เกิดยอดขาย (ค.ศ. เช่น `2024`, `2025`) | `2025` |
-| **`quarter`** | `VARCHAR(10)` | NO | Index | ไตรมาสที่เกิดยอดขาย ต้องระบุเป็น `Q1`, `Q2`, `Q3`, หรือ `Q4` (Case-insensitive) | `'Q1'` |
-| **`qty`** | `NUMERIC(18,4)` | NO | - | ปริมาณ/จำนวนสินค้าที่ขายได้ในงวด | `1500.0000` |
-| **`value`** | `NUMERIC(18,4)` | NO | - | มูลค่ายอดขายสุทธิ (บาท) ไม่รวมภาษีและส่วนลด | `75000.0000` |
+| **`id`** | `VARCHAR(100)` | YES | Index / Unique | รหัสอ้างอิงธุรกรรมหรือ MD5 Hash (`product_code + year + month`) | `'c2e4...b1'` |
+| **`product_code`** | `VARCHAR(100)` | NO | Index | รหัสสินค้าตามระบบ ERP ต้นทาง (`ic_trans_detail.item_code`) | `'PROD-001'` |
+| **`product_name`** | `VARCHAR(255)` | NO | - | ชื่อของสินค้า (`ic_inventory.name_1`) | `'ยาลดไข้พาราเซตามอล 500 มก.'` |
+| **`unit`** | `VARCHAR(50)` | YES | - | หน่วยนับสินค้า เช่น ขวด, กล่อง, แผง, เม็ด | `'ขวด'` |
+| **`year`** | `INTEGER` | NO | Index | ปีปฏิทิน ค.ศ. (`EXTRACT(YEAR FROM doc_date)`) | `2026` |
+| **`month`** | `INTEGER` | NO | Index | เดือนปฏิทิน 1–12 (`EXTRACT(MONTH FROM doc_date)`) | `8` |
+| **`quarter`** | `VARCHAR(10)` | NO | Index | ไตรมาส (`'Q' \|\| EXTRACT(QUARTER FROM doc_date)`) | `'Q3'` |
+| **`qty`** | `NUMERIC(18,4)` | NO | - | ปริมาณ/จำนวนสินค้าที่ขายสุทธิ (หักใบลดหนี้/รับคืน `trans_flag = 48`) | `1500.0000` |
+| **`value`** | `NUMERIC(18,4)` | NO | - | มูลค่ายอดขายสุทธิ (บาท) | `75000.0000` |
+| **`cost`** | `NUMERIC(18,4)` | NO | - | ต้นทุนขายสุทธิ (บาท) สำหรับวิเคราะห์ Gross Profit | `45000.0000` |
 
 ### 3.3 กฎทางธุรกิจและการประมวลผล (Business Rules)
-1. **Product Discovery & Auto-Registration:**
-   - หากพบรายการขายของสินค้าที่ยังไม่มีในตาราง `sales_products` ของระบบ ระบบจะทำการบันทึกสินค้าใหม่ลงตารางโดยอัตโนมัติ โดยสร้าง Primary Key:
-     $$\text{ID} = \text{company\_code} + \text{"-"} + \text{product\_code}$$
-     (เช่น `TOC-PROD-001`) และตั้งค่าเริ่มต้นเป็น Non-Push (`push_years = ""`) เพื่อไม่ให้ยอดขายรวมของบริษัทตกหล่น
+1. **Product & Company Mapping (Inner Join):**
+   - ระบบรายงานจับคู่รายการขายจาก ERP View กับตาราง `push_products` ด้วย `product_code` แบบ **Inner Join**
+   - สินค้าที่มีการระบุใน `push_products` เท่านั้นที่จะถูกนำเข้า และได้รับ `company_code` พร้อม `push_years` ประจำตัว
 2. **Push Attribution:**
-   - ในแต่ละรายการขาย ระบบจะนำปี `year` ของรายการนั้นไปเทียบกับ `push_years` ของสินค้า:
+   - ในแต่ละรายการขาย ระบบนำปี `year` ของรายการนั้นไปเทียบกับ `push_years` ของสินค้า:
      - หาก $\text{year} \in \text{push\_years} \rightarrow$ นับยอดขายเข้าสู่ช่องทาง **Push**
      - หาก $\text{year} \notin \text{push\_years} \rightarrow$ นับยอดขายเข้าสู่ช่องทาง **Non-Push**
-3. **Data Aggregation & Storage:**
-   - รวมยอด `qty` และ `value` แยกตาม `(company_code, channel, year, quarter)` ลงตาราง **`sales_company_quarterly_metrics`**
-   - รวมยอด `qty` และ `value` แยกตาม `(product_id, year, quarter)` ลงตาราง **`sales_product_quarterly_records`**
-   - บันทึกด้วยวิธี **Upsert** (`ON CONFLICT DO UPDATE`) ภายใน Database Transaction แบบ Atomic
+3. **Dual Storage Aggregation & Dual-Year Sync:**
+   - บันทึกยอดขายระดับรายเดือนลง **`sales_product_monthly_records`** (`qty`, `value`, `cost`)
+   - รวมยอด Roll up รายไตรมาสลง **`sales_product_quarterly_records`** และ **`sales_company_quarterly_metrics`**
+   - เมื่อทำการ Import ปี $Y$ ระบบจะ Sync ปี $Y$ และ $Y-1$ อัตโนมัติเพื่อให้พร้อมสำหรับการเปรียบเทียบ YoY และ YTD
 
 ---
 
-## 4. ตัวอย่าง DDL Script สำหรับสร้างตารางใน PostgreSQL (Reference DDL)
-
-ทีม DBA หรือระบบต้นทางสามารถใช้สคริปต์ SQL ด้านล่างนี้เพื่อสร้างตารางหรือจัดทำ Database View ให้สอดคล้องกับระบบ:
+## 4. ตัวอย่างคำสั่งสร้าง VIEW ในฐานข้อมูล ERP PostgreSQL
 
 ```sql
--- 1. ตาราง push_products
-CREATE TABLE IF NOT EXISTS push_products (
-    company_code   VARCHAR(10)  NOT NULL,
-    product_code   VARCHAR(100) NOT NULL,
-    push_years     VARCHAR(100) NOT NULL,
-    display_order  INTEGER      NOT NULL DEFAULT 0,
-    created_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (company_code, product_code)
-);
-
-CREATE INDEX IF NOT EXISTS idx_push_products_company ON push_products(company_code);
-CREATE INDEX IF NOT EXISTS idx_push_products_code ON push_products(product_code);
-
--- 2. ตาราง sales_transactions
-CREATE TABLE IF NOT EXISTS sales_transactions (
-    id             VARCHAR(100),
-    company_code   VARCHAR(10)    NOT NULL,
-    product_code   VARCHAR(100)   NOT NULL,
-    product_name   VARCHAR(255)   NOT NULL,
-    unit           VARCHAR(50),
-    year           INTEGER        NOT NULL,
-    quarter        VARCHAR(10)    NOT NULL,
-    qty            NUMERIC(18, 4) NOT NULL DEFAULT 0,
-    value          NUMERIC(18, 4) NOT NULL DEFAULT 0,
-    created_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_sales_tx_year ON sales_transactions(year);
-CREATE INDEX IF NOT EXISTS idx_sales_tx_company_year ON sales_transactions(company_code, year);
-CREATE INDEX IF NOT EXISTS idx_sales_tx_prod_year_qtr ON sales_transactions(product_code, year, quarter);
+CREATE OR REPLACE VIEW sales_transactions AS
+SELECT 
+    MD5(CONCAT(ic_trans_detail.item_code, '-', EXTRACT(YEAR FROM ic_trans_detail.doc_date), '-', EXTRACT(MONTH FROM ic_trans_detail.doc_date))) AS id,
+    ic_trans_detail.item_code AS product_code,
+    ic_inventory.name_1 AS product_name,
+    ic_trans_detail.unit_code AS unit,
+    EXTRACT(YEAR FROM ic_trans_detail.doc_date)::int AS year,
+    EXTRACT(MONTH FROM ic_trans_detail.doc_date)::int AS month,
+    'Q' || EXTRACT(QUARTER FROM ic_trans_detail.doc_date)::text AS quarter,
+    SUM(CASE WHEN ic_trans_detail.trans_flag = 48 THEN -1 * ic_trans_detail.qty ELSE ic_trans_detail.qty END) AS qty,
+    SUM(CASE WHEN ic_trans_detail.trans_flag = 48 THEN -1 * ic_trans_detail.sum_amount ELSE ic_trans_detail.sum_amount END) AS value,
+    SUM(CASE WHEN ic_trans_detail.trans_flag = 48 THEN -1 * ic_trans_detail.sum_of_cost ELSE ic_trans_detail.sum_of_cost END) AS cost
+FROM ic_trans_detail
+JOIN ic_inventory ON ic_inventory.code = ic_trans_detail.item_code
+WHERE ic_trans_detail.last_status = 0
+  AND ic_trans_detail.trans_flag IN (44, 46, 48)
+  AND ic_trans_detail.item_code IS NOT NULL 
+  AND TRIM(ic_trans_detail.item_code) <> ''
+GROUP BY 
+    ic_trans_detail.item_code,
+    ic_inventory.name_1,
+    ic_trans_detail.unit_code,
+    EXTRACT(YEAR FROM ic_trans_detail.doc_date),
+    EXTRACT(MONTH FROM ic_trans_detail.doc_date),
+    EXTRACT(QUARTER FROM ic_trans_detail.doc_date);
 ```
-
----
-
-## 5. ตัวอย่างข้อมูลทดสอบ (Sample Data)
-
-### 5.1 ตาราง `push_products`
-```sql
-INSERT INTO push_products (company_code, product_code, push_years, display_order) VALUES
-('TOC', 'PARA-500', '2023,2024,2025', 1),
-('TOC', 'AMOX-500', '2024,2025', 2),
-('PTOC', 'CETRI-10', '2025', 1),
-('TOL', 'SYRUP-60', '2023,2024', 1);
-```
-
-### 5.2 ตาราง `sales_transactions`
-```sql
-INSERT INTO sales_transactions (id, company_code, product_code, product_name, unit, year, quarter, qty, value) VALUES
-('TX001', 'TOC', 'PARA-500', 'Paracetamol 500mg', 'ขวด', 2025, 'Q1', 12000.0000, 360000.0000),
-('TX002', 'TOC', 'AMOX-500', 'Amoxicillin 500mg', 'กล่อง', 2025, 'Q1', 5000.0000, 250000.0000),
-('TX003', 'TOC', 'ASPIR-81', 'Aspirin 81mg', 'แผง', 2025, 'Q1', 8000.0000, 160000.0000),
-('TX004', 'PTOC', 'CETRI-10', 'Cetirizine 10mg', 'กล่อง', 2025, 'Q1', 3500.0000, 105000.0000);
-```
-*(หมายเหตุ: ในตัวอย่างข้างต้น `ASPIR-81` ไม่มีใน `push_products` ระบบจะจัดเป็น Non-Push โดยอัตโนมัติ)*
