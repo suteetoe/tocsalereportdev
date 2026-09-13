@@ -16,10 +16,12 @@ import {
 } from '../data/sales-summary.mock'
 import {
   LoginPage,
+  NavigationPage,
   SaleProductYTDPage,
   SalePushProductDetailPage,
   SalePushSummaryPage,
 } from '../pages'
+
 
 export async function setupApiMocks(page: Page) {
   // Mock login endpoint
@@ -167,10 +169,12 @@ type TestFixtures = {
   summaryPage: SalePushSummaryPage
   detailPage: SalePushProductDetailPage
   productYTDPage: SaleProductYTDPage
+  navigationPage: NavigationPage
   authedPage: Page
   authedSummaryPage: SalePushSummaryPage
   authedDetailPage: SalePushProductDetailPage
   authedYTDPage: SaleProductYTDPage
+  authedNavigationPage: NavigationPage
 }
 
 export const test = base.extend<TestFixtures>({
@@ -195,6 +199,10 @@ export const test = base.extend<TestFixtures>({
     await use(new SaleProductYTDPage(page))
   },
 
+  navigationPage: async ({ page }, use) => {
+    await use(new NavigationPage(page))
+  },
+
   authedPage: async ({ page }, use) => {
     await injectAuthSession(page)
     await use(page)
@@ -210,6 +218,10 @@ export const test = base.extend<TestFixtures>({
 
   authedYTDPage: async ({ authedPage }, use) => {
     await use(new SaleProductYTDPage(authedPage))
+  },
+
+  authedNavigationPage: async ({ authedPage }, use) => {
+    await use(new NavigationPage(authedPage))
   },
 })
 
