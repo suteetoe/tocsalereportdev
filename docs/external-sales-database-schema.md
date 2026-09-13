@@ -32,6 +32,21 @@
 - สินค้าที่มี `push_years` อย่างน้อย 1 ปี จะถือเป็นสินค้ากลุ่มผลักดัน (**Push Product Classification**) และจะถูกจัดแสดงในแท็บ **"Push"** ในหน้ารายละเอียดสินค้า (Product Detail Report)
 - หากสินค้าใดไม่มีระบุในตารางนี้ ระบบจะถือว่า `push_years = ""` (เป็นสินค้ากลุ่ม Non-Push ทั้งหมด)
 
+### 2.4 คำสั่ง SQL สำหรับสร้าง View บนฐานข้อมูล ERP ต้นทาง
+
+```sql
+CREATE OR REPLACE VIEW push_products AS
+SELECT 
+    ic_inventory.code AS product_code, 
+    ic_inventory.name_1 AS product_name, 
+    ic_inventory_detail.dimension_1 AS company_code, 
+    ic_inventory_detail.dimension_45 AS push_years
+FROM ic_inventory 
+JOIN ic_inventory_detail ON ic_inventory_detail.ic_code = ic_inventory.code;
+```
+
+*(ดูไฟล์ SQL Script ฉบับเต็มได้ที่ [docs/sql/create_erp_push_products_view.sql](sql/create_erp_push_products_view.sql))*
+
 ---
 
 ## 3. ตาราง/View `sales_transactions` (ยอดขายจากระบบ ERP ต้นทาง)

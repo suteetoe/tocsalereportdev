@@ -96,6 +96,8 @@ See [`docs/frontend-path-prefix.md`](docs/frontend-path-prefix.md) for the imple
 
 - [`CONTEXT.md`](CONTEXT.md): Project domain model, canonical vocabulary, and business rules.
 - [`docs/external-sales-database-schema.md`](docs/external-sales-database-schema.md): Data dictionary and schema specifications for upstream `push_products` and `sales_transactions` tables.
+- [`docs/sales-import-guide.md`](docs/sales-import-guide.md): Sales ingestion setup and execution guide.
+- [`docs/troubleshooting-sale-push-values.md`](docs/troubleshooting-sale-push-values.md): Troubleshooting guide for missing sales values in PUSH vs NON PUSH reports.
 - [`docs/adr/0001-in-process-cron-sales-import.md`](docs/adr/0001-in-process-cron-sales-import.md): Architecture Decision Record for In-Process Goroutine Cron and Advisory Lock.
 
 ## Getting Started
