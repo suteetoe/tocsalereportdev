@@ -6,6 +6,8 @@ test.describe('Authentication Flow', () => {
     page,
   }) => {
     await loginPage.goto()
+    await expect(page).toHaveTitle(/TOGROUP Sale Report/)
+    await expect(loginPage.brandTitle).toBeVisible()
 
     await loginPage.fillEmail('admin@toc.co.th')
     await loginPage.fillPassword('password123')
@@ -14,6 +16,7 @@ test.describe('Authentication Flow', () => {
     // Upon successful login, the app redirects to the root dashboard
     await expect(page).toHaveURL(/\/tocsalereport\/?$/)
     await expect(page.locator('header')).toContainText('System Administrator')
+    await expect(page.getByText('TOGROUP Sale Report').first()).toBeVisible()
   })
 
   test('ระบบแสดงข้อความผิดพลาดเมื่อกรอกรหัสผ่านไม่ถูกต้อง (@regression)', async ({

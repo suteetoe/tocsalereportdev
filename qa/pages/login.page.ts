@@ -7,6 +7,7 @@ export class LoginPage {
   readonly passwordInput: Locator
   readonly submitButton: Locator
   readonly errorAlert: Locator
+  readonly brandTitle: Locator
 
   constructor(page: Page) {
     this.page = page
@@ -15,6 +16,7 @@ export class LoginPage {
     this.passwordInput = page.locator('[data-testid="login-password"]')
     this.submitButton = page.locator('[data-testid="login-submit"]')
     this.errorAlert = page.locator('[role="alert"]')
+    this.brandTitle = this.container.locator('p', { hasText: 'TOGROUP Sale Report' })
   }
 
   async goto(redirectUrl?: string) {
@@ -25,6 +27,7 @@ export class LoginPage {
 
   async expectLoaded() {
     await expect(this.container).toBeVisible()
+    await expect(this.brandTitle).toBeVisible()
     await expect(this.emailInput).toBeVisible()
     await expect(this.passwordInput).toBeVisible()
     await expect(this.submitButton).toBeVisible()
